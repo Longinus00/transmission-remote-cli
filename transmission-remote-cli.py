@@ -153,7 +153,8 @@ class Transmission:
                     'sizeWhenDone', 'haveValid', 'haveUnchecked', 'addedDate',
                     'uploadedEver', 'errorString', 'recheckProgress',
                     'peersKnown', 'peersConnected', 'uploadLimit', 'downloadLimit',
-                    'uploadLimited', 'downloadLimited', 'bandwidthPriority']
+                    'uploadLimited', 'downloadLimited', 'bandwidthPriority',
+                    'seedRatioMode', 'seedRatioLimit']
 
     DETAIL_FIELDS = [ 'files', 'priorities', 'wanted', 'peers', 'trackers',
                       'activityDate', 'dateCreated', 'startDate', 'doneDate',
@@ -1081,10 +1082,23 @@ class Interface:
                         scale_time(torrent['eta']).rjust(self.rateDownload_width),
                         curses.color_pair(5) + curses.A_BOLD + curses.A_REVERSE)
 
+    def get_seed_ratio(self, torrent):
+        if torrent['seedRatioMode'] == 0: # global
+            if self.stats['seedRatioLimited']:
+                return self.stats['seedRatioLimit']
+            else:
+                return 0
+        elif torrent['seedRatioMode'] == 1: # single
+            return torrent['seedRatioLimit']
+        else:
+            return 0
 
     def draw_torrentlist_title(self, torrent, focused, width, ypos):
         if torrent['status'] == Transmission.STATUS_CHECK:
             percent_done = float(torrent['recheckProgress']) * 100
+        elif torrent['status'] == Transmission.STATUS_SEED and \
+                torrent['uploadRatio'] < self.get_seed_ratio(torrent):
+            percent_done = (torrent['uploadRatio'] / self.get_seed_ratio(torrent)) * 100
         else:
             percent_done = torrent['percent_done']
 
@@ -1113,8 +1127,13 @@ class Interface:
         else:
             color = 0
 
-        tag = curses.A_REVERSE
-        tag_done = tag + color
+        if torrent['status'] == Transmission.STATUS_SEED:
+            color2 = curses.color_pair(9)
+        else:
+            color2 = 0
+
+        tag = curses.A_REVERSE + color2
+        tag_done = curses.A_REVERSE + color
         if focused:
             tag += curses.A_BOLD
             tag_done += curses.A_BOLD
