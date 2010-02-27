@@ -647,8 +647,8 @@ class Interface:
             self.rateDownload_width = self.get_rateDownload_width([self.torrent_details])
             self.rateUpload_width   = self.get_rateUpload_width([self.torrent_details])
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if torrents is downloading
-            if self.torrent_details['status'] == Transmission.STATUS_DOWNLOAD:
+            # show downloading column only if torrents is downloading or seeding
+            if self.torrent_details['status'] == Transmission.STATUS_DOWNLOAD or self.torrent_details['status'] == Transmission.STATUS_SEED:
                 self.torrent_title_width -= self.rateDownload_width + 2
 
         elif self.torrents:
@@ -657,8 +657,8 @@ class Interface:
             self.rateUpload_width   = self.get_rateUpload_width(visible_torrents)
 
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if any downloading torrents are visible
-            if filter(lambda x: x['status']==Transmission.STATUS_DOWNLOAD, visible_torrents):
+            # show downloading column only if any downloading or seeding torrents are visible
+            if filter(lambda x: x['status']==Transmission.STATUS_DOWNLOAD or x['status']==Transmission.STATUS_SEED, visible_torrents):
                 self.torrent_title_width -= self.rateDownload_width + 2
         else:
             self.torrent_title_width = 80
@@ -1048,7 +1048,7 @@ class Interface:
             self.draw_downloadrate(torrent, y)
         if torrent['status'] == Transmission.STATUS_DOWNLOAD or torrent['status'] == Transmission.STATUS_SEED:
             self.draw_uploadrate(torrent, y)
-        if torrent['percent_done'] < 100 and torrent['status'] == Transmission.STATUS_DOWNLOAD:
+        if torrent['eta'] != -1:
             self.draw_eta(torrent, y)
 
         self.draw_ratio(torrent, y)
