@@ -647,19 +647,14 @@ class Interface:
             self.rateDownload_width = self.get_rateDownload_width([self.torrent_details])
             self.rateUpload_width   = self.get_rateUpload_width([self.torrent_details])
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if torrents is downloading or seeding
-            if self.torrent_details['status'] == Transmission.STATUS_DOWNLOAD or self.torrent_details['status'] == Transmission.STATUS_SEED:
-                self.torrent_title_width -= self.rateDownload_width + 2
+            self.torrent_title_width -= self.rateDownload_width + 2
 
         elif self.torrents:
             visible_torrents = self.torrents[self.scrollpos/3 : self.scrollpos/3 + self.torrents_per_page + 1]
             self.rateDownload_width = self.get_rateDownload_width(visible_torrents)
             self.rateUpload_width   = self.get_rateUpload_width(visible_torrents)
-
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if any downloading or seeding torrents are visible
-            if filter(lambda x: x['status']==Transmission.STATUS_DOWNLOAD or x['status']==Transmission.STATUS_SEED, visible_torrents):
-                self.torrent_title_width -= self.rateDownload_width + 2
+            self.torrent_title_width -= self.rateDownload_width + 2
         else:
             self.torrent_title_width = 80
 
