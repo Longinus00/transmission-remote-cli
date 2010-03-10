@@ -1114,7 +1114,7 @@ class Interface:
         title = title[:-len(size)] + size
 
         if torrent['status'] == Transmission.STATUS_SEED:
-            color = curses.color_pair(4)
+            color = curses.color_pair(9)
         elif torrent['status'] == Transmission.STATUS_STOPPED:
             color = curses.color_pair(5) + curses.A_UNDERLINE
         elif torrent['status'] == Transmission.STATUS_CHECK or \
@@ -1128,7 +1128,7 @@ class Interface:
             color = 0
 
         if torrent['status'] == Transmission.STATUS_SEED:
-            color2 = curses.color_pair(9)
+            color2 = curses.color_pair(4)
         else:
             color2 = 0
 
