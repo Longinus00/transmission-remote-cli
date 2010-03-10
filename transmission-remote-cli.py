@@ -968,7 +968,7 @@ class Interface:
     def filter_torrent_list(self):
         unfiltered = self.torrents
         if self.filter_list == 'downloading':
-            self.torrents = [t for t in self.torrents if t['rateDownload'] > 0]
+            self.torrents = [t for t in self.torrents if t['status'] == Transmission.STATUS_DOWNLOAD]
         elif self.filter_list == 'uploading':
             self.torrents = [t for t in self.torrents if t['rateUpload'] > 0]
         elif self.filter_list == 'paused':
