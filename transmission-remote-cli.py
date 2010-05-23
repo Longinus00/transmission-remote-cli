@@ -1621,12 +1621,8 @@ class Interface:
     def draw_global_rates(self):
         rates_width = self.rateDownload_width + self.rateUpload_width + 3
         if self.stats['alt-speed-enabled']:
-            self.screen.move(self.height-1, self.width-rates_width - len('Turtle mode on'))
-            self.screen.addstr('Turtle mode on', curses.A_REVERSE + curses.A_BOLD)
-            self.screen.addch(' ', curses.A_REVERSE)
-        else:
-            self.screen.move(self.height-1, self.width-rates_width - len('Turtle mode off'))
-            self.screen.addstr('Turtle mode off', curses.A_REVERSE + curses.A_BOLD)
+            self.screen.move(self.height-1, self.width-rates_width - len('Turtle mode '))
+            self.screen.addstr('Turtle mode', curses.A_REVERSE + curses.A_BOLD)
             self.screen.addch(' ', curses.A_REVERSE)
         
         self.screen.move(self.height-1, self.width-rates_width)
