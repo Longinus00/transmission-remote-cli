@@ -154,14 +154,14 @@ class Transmission:
                     'uploadedEver', 'errorString', 'recheckProgress',
                     'peersKnown', 'peersConnected', 'uploadLimit', 'downloadLimit',
                     'uploadLimited', 'downloadLimited', 'bandwidthPriority',
-                    'seedRatioMode', 'seedRatioLimit']
+                    'seedRatioMode', 'seedRatioLimit', 'peersGettingFromUs',
+                    'peersSendingToUs' ]
 
     DETAIL_FIELDS = [ 'files', 'priorities', 'wanted', 'peers', 'trackers',
                       'activityDate', 'dateCreated', 'startDate', 'doneDate',
                       'totalSize', 'leftUntilDone', 'comment',
                       'hashString', 'pieceCount', 'pieceSize', 'pieces',
-                      'downloadedEver', 'corruptEver',
-                      'peersFrom', 'peersSendingToUs', 'peersGettingFromUs' ] + LIST_FIELDS
+                      'downloadedEver', 'corruptEver', 'peersFrom' ] + LIST_FIELDS
 
     def __init__(self, host, port, username, password):
         self.host = host
@@ -1022,7 +1022,8 @@ class Interface:
         elif self.filter_list == 'incomplete':
             self.torrents = [t for t in self.torrents if t['percent_done'] < 100]
         elif self.filter_list == 'active':
-            self.torrents = [t for t in self.torrents if t['peersConnected'] > 0]
+            self.torrents = [t for t in self.torrents if t['peersGettingFromUs'] > 0 \
+                                 or t['peersSendingToUs'] > 0 or t['status'] == Transmission.STATUS_CHECK]
         elif self.filter_list == 'verifying':
             self.torrents = [t for t in self.torrents if t['status'] == Transmission.STATUS_CHECK \
                                  or t['status'] == Transmission.STATUS_CHECK_WAIT]
