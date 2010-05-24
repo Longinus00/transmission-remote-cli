@@ -159,7 +159,7 @@ class Transmission:
 
     DETAIL_FIELDS = [ 'files', 'priorities', 'wanted', 'peers', 'trackers',
                       'activityDate', 'dateCreated', 'startDate', 'doneDate',
-                      'totalSize', 'leftUntilDone', 'comment',
+                      'totalSize', 'leftUntilDone', 'comment', 'isPrivate',
                       'hashString', 'pieceCount', 'pieceSize', 'pieces',
                       'downloadedEver', 'corruptEver', 'peersFrom' ] + LIST_FIELDS
 
@@ -1337,6 +1337,12 @@ class Interface:
                      "connected to %d;  "                   % t['peersConnected'],
                      "downloading from %d;  "               % t['peersSendingToUs'],
                      "uploading to %d"                      % t['peersGettingFromUs']])
+
+        info.append(['Privacy: '])
+        if t['isPrivate']:
+            info[-1].append('Private to this tracker -- DHT and PEX disabled')
+        else:
+            info[-1].append('Public torrent')
 
         ypos = self.draw_details_list(ypos, info)
 
