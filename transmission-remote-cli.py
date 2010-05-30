@@ -1660,6 +1660,7 @@ class Interface:
                                "%d peer%s connected:" % (self.torrent_details['peersConnected'],
                                                          ('s','')[self.torrent_details['peersConnected'] == 1]) + \
                                    " Trackers: %-3d" % self.torrent_details['peersFrom']['fromTracker'] + \
+                                   " DHT: %-3d" % self.torrent_details['peersFrom']['fromDht'] + \
                                    " PEX: %-3d" % self.torrent_details['peersFrom']['fromPex'] + \
                                    " Incoming: %-3d" % self.torrent_details['peersFrom']['fromIncoming'] + \
                                    " Cache: %-3d" % self.torrent_details['peersFrom']['fromCache'],
