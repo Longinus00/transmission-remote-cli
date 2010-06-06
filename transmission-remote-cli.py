@@ -16,7 +16,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.txt                              #
 ########################################################################
 
-VERSION='0.6.0'
+VERSION='0.6.1'
 
 TRNSM_VERSION_MIN = '1.80'
 TRNSM_VERSION_MAX = '2.00'
@@ -1024,6 +1024,7 @@ class Interface:
         elif self.filter_list == 'active':
             self.torrents = [t for t in self.torrents if t['peersGettingFromUs'] > 0 \
                                  or t['peersSendingToUs'] > 0 or t['status'] == Transmission.STATUS_CHECK]
+            #self.torrents = [t for t in self.torrents if t['peersConnected'] > 0]
         elif self.filter_list == 'verifying':
             self.torrents = [t for t in self.torrents if t['status'] == Transmission.STATUS_CHECK \
                                  or t['status'] == Transmission.STATUS_CHECK_WAIT]
