@@ -1673,8 +1673,9 @@ class Interface:
 
             if self.filter_list:
                 self.screen.addstr("Showing only: ", curses.A_REVERSE)
-                self.screen.addstr("%s%s" % (('','not ')[self.filter_inverse], self.filter_list),
-                                   curses.A_REVERSE + curses.color_pair(10))
+                filtered = ('','not ')[self.filter_inverse]
+                filtered += self.filter_list
+                self.screen.addstr("%s" % filtered, curses.color_pair(10))
 
     def draw_global_rates(self):
         rates_width = self.rateDownload_width + self.rateUpload_width + 3
