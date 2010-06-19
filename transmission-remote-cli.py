@@ -154,7 +154,8 @@ class Transmission:
                     'uploadedEver', 'errorString', 'recheckProgress',
                     'peersKnown', 'peersConnected', 'uploadLimit', 'downloadLimit',
                     'uploadLimited', 'downloadLimited', 'bandwidthPriority',
-                    'peersSendingToUs', 'peersGettingFromUs']
+                    'seedRatioMode', 'seedRatioLimit', 'peersGettingFromUs',
+                    'peersSendingToUs' ]
 
     DETAIL_FIELDS = [ 'files', 'priorities', 'wanted', 'peers', 'trackers',
                       'activityDate', 'dateCreated', 'startDate', 'doneDate',
@@ -216,12 +217,6 @@ class Transmission:
 
         # make sure there are no undefined values
         self.wait_for_torrentlist_update()
-
-        # this fills self.peer_progress_cache with initial values
-        for t in self.torrent_cache:
-            self.requests['torrent-details'].set_request_data('torrent-get', self.TAG_TORRENT_DETAILS,
-                                                              {'ids':t['id'], 'fields': self.DETAIL_FIELDS})
-            self.wait_for_details_update()
         self.requests['torrent-details'] = TransmissionRequest(self.host, self.port)
 
 
@@ -653,19 +648,14 @@ class Interface:
             self.rateDownload_width = self.get_rateDownload_width([self.torrent_details])
             self.rateUpload_width   = self.get_rateUpload_width([self.torrent_details])
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if torrents is downloading
-            if self.torrent_details['status'] == Transmission.STATUS_DOWNLOAD:
-                self.torrent_title_width -= self.rateDownload_width + 2
+            self.torrent_title_width -= self.rateDownload_width + 2
 
         elif self.torrents:
             visible_torrents = self.torrents[self.scrollpos/3 : self.scrollpos/3 + self.torrents_per_page + 1]
             self.rateDownload_width = self.get_rateDownload_width(visible_torrents)
             self.rateUpload_width   = self.get_rateUpload_width(visible_torrents)
-
             self.torrent_title_width = self.width - self.rateUpload_width - 2
-            # show downloading column only if any downloading torrents are visible
-            if filter(lambda x: x['status']==Transmission.STATUS_DOWNLOAD, visible_torrents):
-                self.torrent_title_width -= self.rateDownload_width + 2
+            self.torrent_title_width -= self.rateDownload_width + 2
         else:
             self.torrent_title_width = 80
 
@@ -1016,7 +1006,7 @@ class Interface:
     def filter_torrent_list(self):
         unfiltered = self.torrents
         if self.filter_list == 'downloading':
-            self.torrents = [t for t in self.torrents if t['rateDownload'] > 0]
+            self.torrents = [t for t in self.torrents if t['status'] == Transmission.STATUS_DOWNLOAD]
         elif self.filter_list == 'uploading':
             self.torrents = [t for t in self.torrents if t['rateUpload'] > 0]
         elif self.filter_list == 'paused':
@@ -1093,7 +1083,7 @@ class Interface:
             self.draw_downloadrate(torrent, y)
         if torrent['status'] == Transmission.STATUS_DOWNLOAD or torrent['status'] == Transmission.STATUS_SEED:
             self.draw_uploadrate(torrent, y)
-        if torrent['percent_done'] < 100 and torrent['status'] == Transmission.STATUS_DOWNLOAD:
+        if torrent['eta'] != -1:
             self.draw_eta(torrent, y)
 
         self.draw_ratio(torrent, y)
@@ -1127,10 +1117,23 @@ class Interface:
                         scale_time(torrent['eta']).rjust(self.rateDownload_width),
                         curses.color_pair(5) + curses.A_BOLD + curses.A_REVERSE)
 
+    def get_seed_ratio(self, torrent):
+        if torrent['seedRatioMode'] == 0: # global
+            if self.stats['seedRatioLimited']:
+                return self.stats['seedRatioLimit']
+            else:
+                return 0
+        elif torrent['seedRatioMode'] == 1: # single
+            return torrent['seedRatioLimit']
+        else:
+            return 0
 
     def draw_torrentlist_title(self, torrent, focused, width, ypos):
         if torrent['status'] == Transmission.STATUS_CHECK:
             percent_done = float(torrent['recheckProgress']) * 100
+        elif torrent['status'] == Transmission.STATUS_SEED and \
+                torrent['uploadRatio'] < self.get_seed_ratio(torrent):
+            percent_done = (torrent['uploadRatio'] / self.get_seed_ratio(torrent)) * 100
         else:
             percent_done = torrent['percent_done']
 
@@ -1146,7 +1149,7 @@ class Interface:
         title = title[:-len(size)] + size
 
         if torrent['status'] == Transmission.STATUS_SEED:
-            color = curses.color_pair(4)
+            color = curses.color_pair(9)
         elif torrent['status'] == Transmission.STATUS_STOPPED:
             color = curses.color_pair(5) + curses.A_UNDERLINE
         elif torrent['status'] == Transmission.STATUS_CHECK or \
@@ -1159,7 +1162,11 @@ class Interface:
         else:
             color = 0
 
-        bar = curses.color_pair(9)
+        if torrent['status'] == Transmission.STATUS_SEED:
+            bar = curses.color_pair(4)
+        else:
+            bar = 0
+
         tag = curses.A_REVERSE + bar
         tag_done = curses.A_REVERSE + color
         if focused:
