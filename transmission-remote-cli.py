@@ -1147,9 +1147,11 @@ class Interface:
             size = "%5s / " % scale_bytes(torrent['haveValid'] + torrent['haveUnchecked']) + size
         size = '| ' + size
         title = title[:-len(size)] + size
+        bar = 0
 
         if torrent['status'] == Transmission.STATUS_SEED:
             color = curses.color_pair(9)
+            bar = curses.color_pair(4)
         elif torrent['status'] == Transmission.STATUS_STOPPED:
             color = curses.color_pair(5) + curses.A_UNDERLINE
         elif torrent['status'] == Transmission.STATUS_CHECK or \
@@ -1161,11 +1163,6 @@ class Interface:
             color = curses.color_pair(3)
         else:
             color = 0
-
-        if torrent['status'] == Transmission.STATUS_SEED:
-            bar = curses.color_pair(4)
-        else:
-            bar = 0
 
         tag = curses.A_REVERSE + bar
         tag_done = curses.A_REVERSE + color
