@@ -755,7 +755,7 @@ class Interface:
 
 
         # select torrent for detailed view
-        elif (c == ord("\n") or c == curses.KEY_RIGHT) and self.focus > -1 and self.selected_torrent == -1:
+        elif (c == ord("\n") or c == curses.KEY_RIGHT or c == ord('l')) and self.focus > -1 and self.selected_torrent == -1:
             self.screen.clear()
             self.selected_torrent = self.focus
             self.server.set_torrent_details_id(self.torrents[self.focus]['id'])
@@ -891,7 +891,7 @@ class Interface:
             elif c == ord('c'): self.details_category_focus = 4
 
             # file priority OR walk through details
-            elif c == curses.KEY_RIGHT:
+            elif c == curses.KEY_RIGHT or c == ord('l'):
                 if self.details_category_focus == 1 and \
                         (self.selected_files or self.focus_detaillist > -1):
                     if self.selected_files:
@@ -902,7 +902,7 @@ class Interface:
                 else:
                     self.scrollpos_detaillist = 0
                     self.next_details()
-            elif c == curses.KEY_LEFT:
+            elif c == curses.KEY_LEFT or c == ord('h'):
                 if self.details_category_focus == 1 and \
                         (self.selected_files or self.focus_detaillist > -1):
                     if self.selected_files:
@@ -1846,9 +1846,9 @@ class Interface:
                 return False
             elif c == ord("\t"):
                 input = not input
-            elif c == curses.KEY_LEFT:
+            elif c == curses.KEY_LEFT or c == ord('h'):
                 input = True
-            elif c == curses.KEY_RIGHT:
+            elif c == curses.KEY_RIGHT or c == ord('l'):
                 input = False
             elif c == ord("\n") or c == ord(' '):
                 return input
@@ -1902,8 +1902,8 @@ class Interface:
                     if floating_point: number = float(input)
                     else:              number = int(input)
                     if number <= 0: number = 0
-                    if c == curses.KEY_LEFT:    number -= smallstep
-                    elif c == curses.KEY_RIGHT: number += smallstep
+                    if c == curses.KEY_LEFT or c == ord('h'):    number -= smallstep
+                    elif c == curses.KEY_RIGHT or c == ord('l'): number += smallstep
                     elif c == curses.KEY_DOWN or c == ord('j'):  number -= bigstep
                     elif c == curses.KEY_UP or c == ord('k'):    number += bigstep
                     if number <= 0: number = 0
