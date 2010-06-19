@@ -1159,8 +1159,9 @@ class Interface:
         else:
             color = 0
 
-        tag = curses.A_REVERSE
-        tag_done = tag + color
+        bar = curses.color_pair(9)
+        tag = curses.A_REVERSE + bar
+        tag_done = curses.A_REVERSE + color
         if focused:
             tag += curses.A_BOLD
             tag_done += curses.A_BOLD
