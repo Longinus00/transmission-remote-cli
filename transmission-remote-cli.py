@@ -603,14 +603,14 @@ class Interface:
             curses.start_color()
             curses.init_pair(1,  curses.COLOR_BLACK,    curses.COLOR_BLUE)  # download rate
             curses.init_pair(2,  curses.COLOR_BLACK,    curses.COLOR_RED)   # upload rate
-            curses.init_pair(3,  curses.COLOR_BLUE,     curses.COLOR_BLACK) # unfinished progress
-            curses.init_pair(4,  curses.COLOR_GREEN,    curses.COLOR_BLACK) # finished progress
+            curses.init_pair(3,  curses.COLOR_BLUE,     curses.COLOR_WHITE) # unfinished progress
+            curses.init_pair(4,  curses.COLOR_GREEN,    curses.COLOR_WHITE) # finished progress
             curses.init_pair(5,  curses.COLOR_BLACK,    curses.COLOR_WHITE) # eta/ratio
             curses.init_pair(6,  curses.COLOR_CYAN,     curses.COLOR_BLACK) # idle progress
             curses.init_pair(7,  curses.COLOR_MAGENTA,  curses.COLOR_BLACK) # verifying
             curses.init_pair(8,  curses.COLOR_WHITE,    curses.COLOR_BLACK) # button
             curses.init_pair(9,  curses.COLOR_BLACK,    curses.COLOR_WHITE) # focused button
-            curses.init_pair(10, curses.COLOR_WHITE,     curses.COLOR_RED)   # stats filter
+            curses.init_pair(10, curses.COLOR_RED,      curses.COLOR_WHITE) # stats filter
         except:
             pass
 
@@ -755,7 +755,7 @@ class Interface:
 
 
         # select torrent for detailed view
-        elif (c == ord("\n") or c == curses.KEY_RIGHT) and self.focus > -1 and self.selected_torrent == -1:
+        elif (c == ord("\n") or c == curses.KEY_RIGHT or c == ord('l')) and self.focus > -1 and self.selected_torrent == -1:
             self.screen.clear()
             self.selected_torrent = self.focus
             self.server.set_torrent_details_id(self.torrents[self.focus]['id'])
@@ -863,9 +863,9 @@ class Interface:
 
         # movement in torrent list
         elif self.selected_torrent == -1:
-            if   c == curses.KEY_UP:
+            if   c == curses.KEY_UP or c == ord('k'):
                 self.focus, self.scrollpos = self.move_up(self.focus, self.scrollpos, 3)
-            elif c == curses.KEY_DOWN:
+            elif c == curses.KEY_DOWN or c == ord('j'):
                 self.focus, self.scrollpos = self.move_down(self.focus, self.scrollpos, 3,
                                                             self.torrents_per_page, len(self.torrents))
             elif c == curses.KEY_PPAGE:
@@ -891,7 +891,7 @@ class Interface:
             elif c == ord('c'): self.details_category_focus = 4
 
             # file priority OR walk through details
-            elif c == curses.KEY_RIGHT:
+            elif c == curses.KEY_RIGHT or c == ord('l'):
                 if self.details_category_focus == 1 and \
                         (self.selected_files or self.focus_detaillist > -1):
                     if self.selected_files:
@@ -902,7 +902,7 @@ class Interface:
                 else:
                     self.scrollpos_detaillist = 0
                     self.next_details()
-            elif c == curses.KEY_LEFT:
+            elif c == curses.KEY_LEFT or c == ord('h'):
                 if self.details_category_focus == 1 and \
                         (self.selected_files or self.focus_detaillist > -1):
                     if self.selected_files:
@@ -931,10 +931,10 @@ class Interface:
                         self.selected_files = range(0, len(self.torrent_details['files']))
 
                 # focus/movement
-                elif c == curses.KEY_UP:
+                elif c == curses.KEY_UP or c == ord('k'):
                     self.focus_detaillist, self.scrollpos_detaillist = \
                         self.move_up(self.focus_detaillist, self.scrollpos_detaillist, 1)
-                elif c == curses.KEY_DOWN:
+                elif c == curses.KEY_DOWN or c == ord('j'):
                     self.focus_detaillist, self.scrollpos_detaillist = \
                         self.move_down(self.focus_detaillist, self.scrollpos_detaillist, 1,
                                        self.detaillistitems_per_page, len(self.torrent_details['files']))
@@ -970,10 +970,10 @@ class Interface:
                 list_len = int(piece_count / map_width) + 1
 
             if list_len:
-                if c == curses.KEY_UP:
+                if c == curses.KEY_UP or c == ord('k'):
                     if self.scrollpos_detaillist > 0:
                         self.scrollpos_detaillist -= 1
-                elif c == curses.KEY_DOWN:
+                elif c == curses.KEY_DOWN or c == ord('j'):
                     if self.scrollpos_detaillist < list_len - self.detaillistitems_per_page:
                         self.scrollpos_detaillist += 1
                 elif c == curses.KEY_PPAGE:
@@ -1147,9 +1147,11 @@ class Interface:
             size = "%5s / " % scale_bytes(torrent['haveValid'] + torrent['haveUnchecked']) + size
         size = '| ' + size
         title = title[:-len(size)] + size
+        bar = 0
 
         if torrent['status'] == Transmission.STATUS_SEED:
             color = curses.color_pair(9)
+            bar = curses.color_pair(4)
         elif torrent['status'] == Transmission.STATUS_STOPPED:
             color = curses.color_pair(5) + curses.A_UNDERLINE
         elif torrent['status'] == Transmission.STATUS_CHECK or \
@@ -1162,12 +1164,7 @@ class Interface:
         else:
             color = 0
 
-        if torrent['status'] == Transmission.STATUS_SEED:
-            color2 = curses.color_pair(4)
-        else:
-            color2 = 0
-
-        tag = curses.A_REVERSE + color2
+        tag = curses.A_REVERSE + bar
         tag_done = curses.A_REVERSE + color
         if focused:
             tag += curses.A_BOLD
@@ -1680,8 +1677,9 @@ class Interface:
 
             if self.filter_list:
                 self.screen.addstr("Showing only: ", curses.A_REVERSE)
-                self.screen.addstr("%s%s" % (('','not ')[self.filter_inverse], self.filter_list),
-                                   curses.A_REVERSE + curses.color_pair(10))
+                filtered = ('','not ')[self.filter_inverse]
+                filtered += self.filter_list
+                self.screen.addstr("%s" % filtered, curses.color_pair(10))
 
     def draw_global_rates(self):
         rates_width = self.rateDownload_width + self.rateUpload_width + 3
@@ -1847,9 +1845,9 @@ class Interface:
                 return False
             elif c == ord("\t"):
                 input = not input
-            elif c == curses.KEY_LEFT:
+            elif c == curses.KEY_LEFT or c == ord('h'):
                 input = True
-            elif c == curses.KEY_RIGHT:
+            elif c == curses.KEY_RIGHT or c == ord('l'):
                 input = False
             elif c == ord("\n") or c == ord(' '):
                 return input
@@ -1903,10 +1901,10 @@ class Interface:
                     if floating_point: number = float(input)
                     else:              number = int(input)
                     if number <= 0: number = 0
-                    if c == curses.KEY_LEFT:    number -= smallstep
-                    elif c == curses.KEY_RIGHT: number += smallstep
-                    elif c == curses.KEY_DOWN:  number -= bigstep
-                    elif c == curses.KEY_UP:    number += bigstep
+                    if c == curses.KEY_LEFT or c == ord('h'):    number -= smallstep
+                    elif c == curses.KEY_RIGHT or c == ord('l'): number += smallstep
+                    elif c == curses.KEY_DOWN or c == ord('j'):  number -= bigstep
+                    elif c == curses.KEY_UP or c == ord('k'):    number += bigstep
                     if number <= 0: number = 0
                     input = str(number)
                 except ValueError:
@@ -1932,10 +1930,10 @@ class Interface:
                 return options[old_focus-1][0]
             elif c == ord("\n"):
                 return options[focus-1][0]
-            elif c == curses.KEY_DOWN:
+            elif c == curses.KEY_DOWN or c == ord('j'):
                 focus += 1
                 if focus > len(options): focus = 1
-            elif c == curses.KEY_UP:
+            elif c == curses.KEY_UP or c == ord('k'):
                 focus -= 1
                 if focus < 1: focus = len(options)
             elif c == curses.KEY_HOME:
@@ -1967,7 +1965,7 @@ class Interface:
             options = [('Peer _Port', "%d" % self.stats['peer-port']),
                        ('UP_nP/NAT-PMP', ('disabled','enabled ')[self.stats['port-forwarding-enabled']]),
                        ('Peer E_xchange', ('disabled','enabled ')[self.stats['pex-enabled']]),
-                       ('Global Peer _Limit', "%d" % self.stats['peer-limit-global']),
+                       ('_Global Peer Limit', "%d" % self.stats['peer-limit-global']),
                        ('Peer Limit per _Torrent', "%d" % self.stats['peer-limit-per-torrent']),
                        ('Protocol En_cryption', "%s" % self.stats['encryption']),
                        ('_Seed Ratio Limit', "%s" % ('unlimited',self.stats['seedRatioLimit'])[self.stats['seedRatioLimited']])]
@@ -2001,7 +1999,7 @@ class Interface:
                                        (1,0)[self.stats['port-forwarding-enabled']])
             elif c == ord('x'):
                 self.server.set_option('pex-enabled', (1,0)[self.stats['pex-enabled']])
-            elif c == ord('l'):
+            elif c == ord('g'):
                 limit = self.dialog_input_number("Maximum number of connected peers",
                                                  self.stats['peer-limit-global'])
                 if limit >= 0: self.server.set_option('peer-limit-global', limit)
