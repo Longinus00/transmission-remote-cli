@@ -16,7 +16,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.txt                              #
 ########################################################################
 
-VERSION='0.6.3'
+VERSION='0.6.7'
 
 TRNSM_VERSION_MIN = '1.80'
 TRNSM_VERSION_MAX = '2.00'
@@ -610,7 +610,7 @@ class Interface:
             curses.init_pair(7,  curses.COLOR_MAGENTA,  curses.COLOR_BLACK) # verifying
             curses.init_pair(8,  curses.COLOR_WHITE,    curses.COLOR_BLACK) # button
             curses.init_pair(9,  curses.COLOR_BLACK,    curses.COLOR_WHITE) # focused button
-            curses.init_pair(10, curses.COLOR_RED,      curses.COLOR_WHITE) # stats filter
+            curses.init_pair(10, curses.COLOR_RED,      curses.COLOR_WHITE)   # stats filter
         except:
             pass
 
@@ -829,10 +829,15 @@ class Interface:
 
         # pause/unpause torrent
         elif c == ord('p') and self.focus > -1:
-            if self.torrents[self.focus]['status'] == Transmission.STATUS_STOPPED:
-                self.server.start_torrent(self.torrents[self.focus]['id'])
+            if self.selected_torrent > -1:
+                t = self.torrent_details
             else:
-                self.server.stop_torrent(self.torrents[self.focus]['id'])
+                t = self.torrents[self.focus]
+               
+            if t['status'] == Transmission.STATUS_STOPPED:
+                self.server.start_torrent(t['id'])
+            else:
+                self.server.stop_torrent(t['id'])
 
         # pause/unpause all torrents
         elif c == ord('P'):
@@ -960,7 +965,7 @@ class Interface:
 
             # tracker list movement
             elif self.details_category_focus == 3:
-                list_len = len(self.torrent_details['trackerStats']) * 5 - 1
+                list_len = len(self.torrent_details['trackerStats']) * 5
 
             # pieces list movement
             elif self.details_category_focus == 4:
@@ -1493,35 +1498,41 @@ class Interface:
         ypos -= self.scrollpos_detaillist % 5
         start = self.scrollpos_detaillist / 5
         tlist = tlist[start:]
+        current_tier = -1
         for t in tlist:
             announce_msg_size = scrape_msg_size = 0
 
-            addstr(ypos+1, 0,  "Latest announce: %s" % timestamp(t['lastAnnounceTime']))
-            addstr(ypos+1, 55, "Latest scrape: %s" % timestamp(t['lastScrapeTime']))
+            if current_tier != t['tier']:
+                current_tier = t['tier']
+                addstr(ypos, 0, ("Tier %d" % (current_tier+1)).ljust(self.width), curses.A_REVERSE)
+                ypos += 1
+
+            addstr(ypos+1, 4,  "Last announce: %s" % timestamp(t['lastAnnounceTime']))
+            addstr(ypos+1, 57, "  Last scrape: %s" % timestamp(t['lastScrapeTime']))
 
             if t['lastAnnounceSucceeded']:
                 peers = "%s peer%s" % (num2str(t['lastAnnouncePeerCount']), ('s', '')[t['lastAnnouncePeerCount']==1])
-                addstr(ypos,   0, "#%i in tier #%i: %s" % (t['id']+1, t['tier'], t['announce']), curses.A_BOLD + curses.A_UNDERLINE)
-                addstr(ypos+2, 9, "Result: ")
-                addstr(ypos+2, 17, "%s" % peers, curses.A_BOLD)
+                addstr(ypos,   2, t['announce'], curses.A_BOLD + curses.A_UNDERLINE)
+                addstr(ypos+2, 11, "Result: ")
+                addstr(ypos+2, 19, "%s received" % peers, curses.A_BOLD)
             else:
-                addstr(ypos,   0, "#%i in tier #%i: %s" % (t['id']+1, t['tier'], t['announce']), curses.A_UNDERLINE)
-                addstr(ypos+2, 7, "Response:")
-                announce_msg_size = self.wrap_and_draw_result(top, ypos+2, 17, t['lastAnnounceResult'])
+                addstr(ypos,   2, t['announce'], curses.A_UNDERLINE)
+                addstr(ypos+2, 9, "Response:")
+                announce_msg_size = self.wrap_and_draw_result(top, ypos+2, 19, t['lastAnnounceResult'])
 
             if t['lastScrapeSucceeded']:
                 seeds   = "%s seed%s" % (num2str(t['seederCount']), ('s', '')[t['seederCount']==1])
                 leeches = "%s leech%s" % (num2str(t['leecherCount']), ('es', '')[t['leecherCount']==1])
-                addstr(ypos+2, 55, "Tracker knows: ")
-                addstr(ypos+2, 70, "%s and %s" % (seeds, leeches), curses.A_BOLD)
+                addstr(ypos+2, 57, "Tracker knows: ")
+                addstr(ypos+2, 72, "%s and %s" % (seeds, leeches), curses.A_BOLD)
             else:
-                addstr(ypos+2, 60, "Response:")
-                scrape_msg_size += self.wrap_and_draw_result(top, ypos+2, 70, t['lastScrapeResult'])
+                addstr(ypos+2, 62, "Response:")
+                scrape_msg_size += self.wrap_and_draw_result(top, ypos+2, 72, t['lastScrapeResult'])
 
             ypos += max(announce_msg_size, scrape_msg_size)
 
-            addstr(ypos+3, 0,  "  Next announce: %s" % timestamp(t['nextAnnounceTime']))
-            addstr(ypos+3, 55, "  Next scrape: %s" % timestamp(t['nextScrapeTime']))
+            addstr(ypos+3, 4,  "Next announce: %s" % timestamp(t['nextAnnounceTime']))
+            addstr(ypos+3, 57, "  Next scrape: %s" % timestamp(t['nextScrapeTime']))
 
             ypos += 5
 
@@ -1530,8 +1541,9 @@ class Interface:
         i = 0
         for i, line in enumerate(result):
             if ypos+i > top and ypos+i < self.height - 2:
-                self.pad.addstr(ypos+i, xpos, line, curses.A_BOLD)
+                self.pad.addstr(ypos+i, xpos, line, curses.A_UNDERLINE)
         return i
+
 
     def draw_pieces_map(self, ypos):
         pieces = self.torrent_details['pieces']
@@ -1677,9 +1689,8 @@ class Interface:
 
             if self.filter_list:
                 self.screen.addstr("Showing only: ", curses.A_REVERSE)
-                filtered = ('','not ')[self.filter_inverse]
-                filtered += self.filter_list
-                self.screen.addstr("%s" % filtered, curses.color_pair(10))
+                self.screen.addstr("%s%s" % (('','not ')[self.filter_inverse], self.filter_list),
+                                   curses.color_pair(10))
 
     def draw_global_rates(self):
         rates_width = self.rateDownload_width + self.rateUpload_width + 3
