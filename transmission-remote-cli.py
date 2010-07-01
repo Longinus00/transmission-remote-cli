@@ -16,7 +16,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.txt                              #
 ########################################################################
 
-VERSION='0.7.0'
+VERSION='0.7.2'
 
 TRNSM_VERSION_MIN = '1.80'
 TRNSM_VERSION_MAX = '2.01'
@@ -307,13 +307,13 @@ class Transmission:
                 if self.peer_progress_cache[peerid]['last_progress'] and progress_diff > 0 and time_diff > 5:
                     downloaded = self.torrent_details_cache['totalSize'] * progress_diff
                     avg_speed  = downloaded / time_diff
-                    debug("%s:\n" % peerid +\
-                              "\tlast_time.....: %-13s   this_time.......: %-13s  diff: %s\n" \
-                              % (self.peer_progress_cache[peerid]['last_update'], this_time, time_diff) +\
-                              "\tlast_progress.: %-13s   this_progress...: %-13s  diff: %s\n" \
-                              % (self.peer_progress_cache[peerid]['last_progress'], peer['progress'], progress_diff) +\
-                              "\tformula: (%s * %s) / %s = %s/s\n" \
-                              % (self.torrent_details_cache['totalSize'], progress_diff, time_diff, scale_bytes(avg_speed)))
+                    # debug("%s:\n" % peerid +\
+                    #           "\tlast_time.....: %-13s   this_time.......: %-13s  diff: %s\n" \
+                    #           % (self.peer_progress_cache[peerid]['last_update'], this_time, time_diff) +\
+                    #           "\tlast_progress.: %-13s   this_progress...: %-13s  diff: %s\n" \
+                    #           % (self.peer_progress_cache[peerid]['last_progress'], peer['progress'], progress_diff) +\
+                    #           "\tformula: (%s * %s) / %s = %s/s\n" \
+                    #           % (self.torrent_details_cache['totalSize'], progress_diff, time_diff, scale_bytes(avg_speed)))
 
                     if self.peer_progress_cache[peerid]['download_speed'] > 0:  # make it less jumpy
                         avg_speed = (self.peer_progress_cache[peerid]['download_speed'] + avg_speed) /2
@@ -321,7 +321,7 @@ class Transmission:
                     download_left = self.torrent_details_cache['totalSize'] - \
                         (self.torrent_details_cache['totalSize']*peer['progress'])
                     time_left  = download_left / avg_speed
-                    debug("  %s  --  will finish %s\n\n" % (timestamp(this_time), timestamp(time_left + this_time)))
+                    # debug("  %s  --  will finish %s\n\n" % (timestamp(this_time), timestamp(time_left + this_time)))
 
                     self.peer_progress_cache[peerid]['last_update']    = this_time  # remember update time
                     self.peer_progress_cache[peerid]['download_speed'] = avg_speed
@@ -522,13 +522,10 @@ class Transmission:
     def wait_for_status_update(self):
         self.wait_for_update(22)
     def wait_for_update(self, update_id):
-        start = time.time()
         self.update(0) # send request
         while True:    # wait for response
-            debug("still waiting for %d\n" % update_id)
             if self.update(0, update_id): break
             time.sleep(0.1)
-        debug("delay was %dms\n\n" % ((time.time() - start) * 1000))
 
 
     def get_status(self, torrent):
@@ -1304,7 +1301,6 @@ class Interface:
         sizes.extend(["%s left" % scale_bytes(t['leftUntilDone'], 'long')])
         info.append(sizes)
 
-
         info.append(['Files: ', "%d;  " % len(t['files'])])
         complete     = map(lambda x: x['bytesCompleted'] == x['length'], t['files']).count(True)
         not_complete = filter(lambda x: x['bytesCompleted'] != x['length'], t['files'])
@@ -1350,6 +1346,24 @@ class Interface:
                      "connected to %d;  "                   % t['peersConnected'],
                      "downloading from %d;  "               % t['peersSendingToUs'],
                      "uploading to %d"                      % t['peersGettingFromUs']])
+
+        # average peer speed
+        incomplete_peers = [peer for peer in self.torrent_details['peers'] if peer['progress'] < 1]
+        if incomplete_peers:
+            # use at least 2/3 or 10 of incomplete peers to make an estimation
+            active_peers = [peer for peer in incomplete_peers if peer['download_speed']]
+            min_active_peers = min(10, max(1, round(len(incomplete_peers)*0.666)))
+            if 1 <= len(active_peers) >= min_active_peers:
+                swarm_speed  = sum([peer['download_speed'] for peer in active_peers]) / len(active_peers)
+                info.append(['Swarm speed: ', "%s on average;  " % scale_bytes(swarm_speed),
+                             "distribution of 1 copy takes %s" % \
+                                 scale_time(int(t['totalSize'] / swarm_speed), 'long')])
+            else:
+                info.append(['Swarm speed: ', "<gathering info from %d peers, %d done>" % \
+                                 (min_active_peers, len(active_peers))])
+        else:
+            info.append(['Swarm speed: ', "<no downloading peers connected>"])
+
 
         info.append(['Privacy: '])
         if t['isPrivate']:
@@ -1640,7 +1654,7 @@ class Interface:
 
         missing_pieces = piece_count - counter - 1
         if missing_pieces:
-            line = "%d further piece%s not listed" % (missing_pieces, ('','s')[missing_pieces>1])
+            line = "%d further piece%s" % (missing_pieces, ('','s')[missing_pieces>1])
             xpos = (self.width - len(line)) / 2
             self.pad.addstr(self.height-3, xpos, line, curses.A_REVERSE)
 
@@ -2148,7 +2162,6 @@ def scale_time(seconds, type='short'):
 
     elif seconds < month_in_sec:
         days = round(seconds / day_in_sec, 0)
-
         if type == 'long':
             return "%d day%s" % (days, ('', 's')[days>1])
         else:
@@ -2239,7 +2252,12 @@ def middlecut(string, width):
 def debug(data):
     if cmd_args.DEBUG:
         file = open("debug.log", 'a')
-        file.write(data.encode('utf-8'))
+        if type(data) == type(str()):
+            file.write(data.encode('utf-8'))
+        else:
+            import pprint
+            pp = pprint.PrettyPrinter(indent=4)
+            file.write(pp.pformat(data) + "\n====================\n\n")
         file.close
 
 def quit(msg='', exitcode=0):
